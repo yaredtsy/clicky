@@ -1,14 +1,3 @@
-//! Transparent NSPanel used as a screen-space highlight rectangle.
-//!
-//! ## Position
-//! AX frames from Swift use **top-left** screen origin with **Y downward** (see `AXHelpers.swift`).
-//! That matches Tauri/Tao `LogicalPosition`, so we use `WebviewWindow::set_position` / `set_size`
-//! instead of raw `NSWindow::setFrame` (which WRY can fight, so the rect would appear “stuck”).
-//!
-//! ## Transparency
-//! On macOS, a transparent webview requires Tauri’s **`macos-private-api`** feature plus
-//! `.transparent(true)` on the `WebviewWindowBuilder`.
-
 use super::highlight_panel::HighlightOverlay;
 
 use tauri::{AppHandle, LogicalSize, Size, WebviewUrl};
