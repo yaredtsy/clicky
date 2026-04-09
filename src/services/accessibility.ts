@@ -42,9 +42,22 @@ export async function dumpToFile(path?: string): Promise<string> {
     return invoke<string>('dump_accessibility_tree_to_file', { path });
 }
 
+/** Optional strings shown on the non-transparent tooltip card next to the highlight. */
+export interface HighlightTooltipMeta {
+    title?: string;
+    description?: string;
+}
+
 /** Show the highlight overlay at the given AX screen frame (top-left origin). */
-export async function highlightElement(frame: Frame): Promise<void> {
-    return invoke<void>('highlight_element', { frame });
+export async function highlightElement(
+    frame: Frame,
+    meta?: HighlightTooltipMeta,
+): Promise<void> {
+    return invoke<void>('highlight_element', {
+        frame,
+        title: meta?.title,
+        description: meta?.description,
+    });
 }
 
 /** Hide the highlight overlay. */

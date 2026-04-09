@@ -17,7 +17,10 @@ export function useSelectedNode(): UseSelectedNodeResult {
     void (async () => {
       try {
         if (selectedNode?.frame) {
-          await highlightElement(selectedNode.frame);
+          await highlightElement(selectedNode.frame, {
+            title: selectedNode.title,
+            description: selectedNode.description,
+          });
         } else {
           await clearHighlight();
         }

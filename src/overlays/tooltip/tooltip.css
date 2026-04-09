@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Slim overlay surface: no shadcn theme import — keeps bundle smaller */
+@layer base {
+  html,
+  body,
+  #root {
+    @apply m-0 h-full min-h-full bg-transparent;
+  }
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply overflow-hidden bg-transparent font-sans antialiased;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+  }
+}

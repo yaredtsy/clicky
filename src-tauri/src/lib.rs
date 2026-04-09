@@ -30,8 +30,13 @@ pub fn run() {
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
-            if let Err(e) = overlay::panel::create_overlay_panel(app.handle()) {
-                eprintln!("[claw-kernel] Failed to create highlight overlay panel: {e}");
+            {
+                if let Err(e) = overlay::panel::create_overlay_panel(app.handle()) {
+                    eprintln!("[claw-kernel] Failed to create highlight overlay panel: {e}");
+                }
+                if let Err(e) = overlay::panel::create_tooltip_panel(app.handle()) {
+                    eprintln!("[claw-kernel] Failed to create highlight tooltip panel: {e}");
+                }
             }
             Ok(())
         })

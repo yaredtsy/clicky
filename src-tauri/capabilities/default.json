@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main", "highlight-overlay"],
+  "windows": ["main", "highlight-overlay", "highlight-tooltip"],
   "permissions": [
     "core:default",
     "opener:default"
