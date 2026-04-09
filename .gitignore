@@ -1,0 +1,52 @@
+# ------------------------------
+# Node / Vite / TypeScript
+# ------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+
+# package manager artifacts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+logs/
+
+# local env and machine-specific config
+.env
+.env.*
+!.env.example
+*.local
+
+# ------------------------------
+# Tauri / Rust
+# ------------------------------
+src-tauri/target/
+target/
+Cargo.lock
+
+# Keep Cargo.lock for applications if desired.
+# Remove the next line if you want to commit it.
+!src-tauri/Cargo.lock
+
+# ------------------------------
+# macOS / Windows clutter
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# IDE / Editor files
+# ------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
