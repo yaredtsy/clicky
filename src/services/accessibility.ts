@@ -10,7 +10,7 @@
  * - Consistent error handling
  */
 import { invoke } from '@tauri-apps/api/core';
-import type { AXTreeResponse } from '../models';
+import type { AXTreeResponse, Frame } from '../models';
 
 /** Check if Accessibility permission is granted (no prompt). */
 export async function checkPermission(): Promise<boolean> {
@@ -40,4 +40,14 @@ export async function stopMonitor(): Promise<void> {
 /** Dump frontmost app AX tree to an XML file. */
 export async function dumpToFile(path?: string): Promise<string> {
     return invoke<string>('dump_accessibility_tree_to_file', { path });
+}
+
+/** Show the highlight overlay at the given AX screen frame (top-left origin). */
+export async function highlightElement(frame: Frame): Promise<void> {
+    return invoke<void>('highlight_element', { frame });
+}
+
+/** Hide the highlight overlay. */
+export async function clearHighlight(): Promise<void> {
+    return invoke<void>('clear_highlight');
 }

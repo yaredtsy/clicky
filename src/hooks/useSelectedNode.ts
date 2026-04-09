@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AXNode } from "../models";
+import { clearHighlight, highlightElement } from "../services/accessibility";
 
 interface UseSelectedNodeResult {
   selectedNode: AXNode | null;
@@ -11,6 +12,23 @@ interface UseSelectedNodeResult {
 export function useSelectedNode(): UseSelectedNodeResult {
   const [selectedNode, setSelectedNode] = useState<AXNode | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        if (selectedNode?.frame) {
+          await highlightElement(selectedNode.frame);
+        } else {
+          await clearHighlight();
+        }
+      } catch {
+        /* macOS-only overlay, or IPC unavailable */
+      }
+    })();
+    return () => {
+      void clearHighlight().catch(() => {});
+    };
+  }, [selectedNode]);
 
   const select = useCallback((node: AXNode) => {
     setSelectedNode(node);

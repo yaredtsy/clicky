@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AXNode, AppInfo, AXTreeResponse } from '../models';
-import { getAccessibilityTree, startMonitor, stopMonitor } from '../services/accessibility';
+import { clearHighlight, getAccessibilityTree, startMonitor, stopMonitor } from '../services/accessibility';
 import { onFrontmostChanged } from '../services/events';
 
 interface UseAccessibilityTreeResult {
@@ -50,6 +50,11 @@ export function useAccessibilityTree(): UseAccessibilityTreeResult {
     const [monitoring, setMonitoring] = useState(false);
 
     const refresh = useCallback(async () => {
+        try {
+            await clearHighlight();
+        } catch {
+            /* overlay only on macOS */
+        }
         setLoading(true);
         setError(null);
         try {
