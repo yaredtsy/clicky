@@ -10,9 +10,10 @@ import Foundation
 /// - `didLaunchApplicationNotification`: A new app was launched
 ///
 /// When either fires, we:
-/// 1. Check if it's a regular GUI app (not a background daemon)
-/// 2. If Accessibility is trusted, re-traverse the AX tree and save to file
-/// 3. Call the Rust callback with the bundle identifier
+/// 1. Skip our own process (never traverse or notify when Claw is frontmost)
+/// 2. Check if it's a regular GUI app (not a background daemon)
+/// 3. If Accessibility is trusted, re-traverse the AX tree and save to file
+/// 4. Call the Rust callback with the bundle identifier
 ///
 /// ## Thread Safety
 ///
@@ -63,8 +64,6 @@ enum FrontmostMonitor {
         ) { note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey]
                     as? NSRunningApplication else { return }
-            // Don't monitor our own launch
-            guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
             handleAppChange(app, callback: callback, dumpPath: dumpPath)
         }
         
@@ -92,6 +91,9 @@ enum FrontmostMonitor {
         callback: FrontmostCallback,
         dumpPath: String
     ) {
+        // Never inspect ourselves (activation, launch, or initial frontmost = this app)
+        guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
+
         // Filter to regular GUI apps
         guard app.activationPolicy == .regular else { return }
         
