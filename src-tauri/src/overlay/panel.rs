@@ -9,14 +9,12 @@
 //! On macOS, a transparent webview requires Tauri’s **`macos-private-api`** feature plus
 //! `.transparent(true)` on the `WebviewWindowBuilder`.
 
-use std::sync::mpsc;
-
-use tauri::{
-    AppHandle, Emitter, LogicalPosition, LogicalSize, Position, Size, WebviewUrl,
-};
-use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
-
 use super::highlight_panel::HighlightOverlay;
+
+use tauri::{AppHandle, LogicalSize, Size, WebviewUrl};
+use tauri_nspanel::{
+    CollectionBehavior, ManagerExt, NSPoint, NSRect, NSSize, PanelBuilder, PanelLevel, StyleMask,
+};
 
 pub const OVERLAY_LABEL: &str = "highlight-overlay";
 
@@ -61,23 +59,13 @@ pub fn show_highlight(app: &AppHandle, frame: crate::models::ax_node::Frame) -> 
         return hide_highlight(app);
     }
 
-    let (tx, rx) = mpsc::sync_channel(1);
-    let runner = app.clone();
     let app_for_cb = app.clone();
     let x = frame.x;
     let y = frame.y;
     let width = frame.width;
     let height = frame.height;
 
-    runner
-        .run_on_main_thread(move || {
-            let res = show_highlight_on_main(&app_for_cb, x, y, width, height);
-            let _ = tx.send(res);
-        })
-        .map_err(|e| e.to_string())?;
-
-    rx.recv()
-        .map_err(|_| "highlight channel closed".to_string())?
+    show_highlight_on_main(&app_for_cb, x, y, width, height)
 }
 
 fn show_highlight_on_main(
@@ -91,48 +79,50 @@ fn show_highlight_on_main(
         .get_webview_panel(OVERLAY_LABEL)
         .map_err(|e| format!("Overlay panel not found: {e:?}"))?;
 
-    let Some(window) = panel.to_window() else {
-        return Err("Overlay WebviewWindow missing".into());
-    };
+    let monitor = monitor::get_monitor_with_cursor()
+        .ok_or_else(|| "No monitor found for cursor position".to_string())?;
+
+    let monitor_scale_factor = monitor.scale_factor();
+
+    let monitor_size = monitor.size().to_logical::<f64>(monitor_scale_factor);
+
+    let appkit_y = monitor_size.height - y - height;
+
+    // let Some(window) = panel.to_window() else {
+    //     return Err("Overlay WebviewWindow missing".into());
+    // };
 
     // AX / Swift frames: top-left origin, Y downward — same as Tao logical screen coords.
-    window
-        .set_size(Size::Logical(LogicalSize::new(width, height)))
-        .map_err(|e| e.to_string())?;
-    window
-        .set_position(Position::Logical(LogicalPosition::new(x, y)))
-        .map_err(|e| e.to_string())?;
+    // window
+    //     .set_size(Size::Logical(LogicalSize::new(width, height)))
+    //     .map_err(|e| e.to_string())?;
+    // window
+    //     .set_position(Position::Logical(LogicalPosition::new(x, y)))
+    //     .map_err(|e| e.to_string())?;
 
-    panel.order_front_regardless();
+    panel.show();
 
-    let payload = serde_json::json!({
-        "x": x,
-        "y": y,
-        "width": width,
-        "height": height,
-    });
-    let _ = window.emit("highlight-update", payload);
+    let panel = panel.as_panel();
+
+    let rect = NSRect {
+        origin: NSPoint { x: x, y: appkit_y },
+        size: NSSize {
+            width: width,
+            height: height,
+        },
+    };
+
+    panel.setFrame_display(rect, true);
 
     Ok(())
 }
 
 pub fn hide_highlight(app: &AppHandle) -> Result<(), String> {
-    let (tx, rx) = mpsc::sync_channel(1);
-    let runner = app.clone();
     let app_for_cb = app.clone();
-    runner
-        .run_on_main_thread(move || {
-            let res = (|| {
-                let panel = app_for_cb
-                    .get_webview_panel(OVERLAY_LABEL)
-                    .map_err(|e| format!("{e:?}"))?;
-                panel.hide();
-                Ok::<(), String>(())
-            })();
-            let _ = tx.send(res);
-        })
-        .map_err(|e| e.to_string())?;
 
-    rx.recv()
-        .map_err(|_| "highlight channel closed".to_string())?
+    let panel = app_for_cb
+        .get_webview_panel(OVERLAY_LABEL)
+        .map_err(|e| format!("{e:?}"))?;
+    panel.hide();
+    Ok(())
 }
