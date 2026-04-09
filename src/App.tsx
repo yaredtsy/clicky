@@ -1,94 +1,99 @@
-import { useCallback, useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import "./App.css";
-
-type PermLabel = "loading" | "allowed" | "denied" | "unknown";
+import { useEffect } from "react";
+import { usePermission } from "@/hooks/usePermission";
+import { useAccessibilityTree } from "@/hooks/useAccessibilityTree";
+import { useSelectedNode } from "@/hooks/useSelectedNode";
+import { PermissionGate } from "@/components/permission";
+import { Toolbar } from "@/components/toolbar";
+import { TreeView } from "@/components/tree";
+import { DetailPanel } from "@/components/detail";
+import { Separator } from "@/components/ui/separator";
 
 function App() {
-  const [perm, setPerm] = useState<PermLabel>("loading");
-  const [activity, setActivity] = useState("");
-
-  const refreshPermission = useCallback(async () => {
-    try {
-      const allowed = await invoke<boolean>("get_ax_accessibility_allowed");
-      setPerm(allowed ? "allowed" : "denied");
-    } catch {
-      setPerm("unknown");
-    }
-  }, []);
+  const permission = usePermission();
+  const axTree = useAccessibilityTree();
+  const selection = useSelectedNode();
 
   useEffect(() => {
-    void refreshPermission();
-  }, [refreshPermission]);
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void listen<string>("ax-frontmost-changed", (e) => {
-      setActivity(`Frontmost changed: ${e.payload}`);
-    }).then((fn) => {
-      unlisten = fn;
-    });
-    return () => {
-      unlisten?.();
-    };
-  }, []);
-
-  async function start() {
-    try {
-      await invoke("start_ax_frontmost_monitor");
-      await refreshPermission();
-      setActivity("Monitoring frontmost app… switch apps to see updates.");
-    } catch (e) {
-      await refreshPermission();
-      setActivity(String(e));
-    }
-  }
-
-  const permText =
-    perm === "loading"
-      ? "Checking…"
-      : perm === "allowed"
-        ? "Allowed"
-        : perm === "denied"
-          ? "Not allowed"
-          : "Unknown (not macOS or error)";
+    selection.deselect();
+  }, [axTree.tree, selection.deselect]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <PermissionGate
+      status={permission.status}
+      error={permission.error}
+      onRequest={permission.request}
+      onRefresh={permission.refresh}
+    >
+      <div className="flex h-screen min-h-0 flex-col bg-background">
+        <header className="shrink-0 border-b border-border px-3 py-2">
+          <h1 className="font-heading text-sm font-semibold tracking-tight">
+            Claw Inspector
+          </h1>
+        </header>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <Toolbar
+          appInfo={axTree.appInfo}
+          nodeCount={axTree.nodeCount}
+          truncated={axTree.truncated}
+          loading={axTree.loading}
+          monitoring={axTree.monitoring}
+          error={axTree.error}
+          onRefresh={axTree.refresh}
+          onStartMonitoring={axTree.startMonitoring}
+          onStopMonitoring={axTree.stopMonitoring}
+        />
+
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border">
+            <div className="shrink-0 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              Tree
+            </div>
+            <Separator />
+            <div className="min-h-0 flex-1">
+              {axTree.tree ? (
+                <TreeView
+                  root={axTree.tree}
+                  selectedId={selection.selectedId}
+                  onSelect={selection.select}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+                  <p>
+                    Click <strong className="text-foreground">Refresh</strong> or{" "}
+                    <strong className="text-foreground">Monitor</strong> to load the
+                    accessibility tree.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="shrink-0 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              Details
+            </div>
+            <Separator />
+            <div className="min-h-0 flex-1">
+              <DetailPanel node={selection.selectedNode} />
+            </div>
+          </div>
+        </div>
+
+        <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border bg-card/50 px-3 py-1.5 text-xs text-muted-foreground">
+          <span>
+            {axTree.nodeCount > 0
+              ? `${axTree.nodeCount} nodes`
+              : "No tree loaded"}
+          </span>
+          {axTree.appInfo ? <span>PID: {axTree.appInfo.pid}</span> : null}
+          {axTree.monitoring ? (
+            <span className="text-emerald-500 dark:text-emerald-400">
+              ● Monitoring
+            </span>
+          ) : null}
+        </footer>
       </div>
-      <p>
-        <strong>Accessibility permission:</strong> {permText}
-      </p>
-      <p>Start listens for the frontmost macOS app (requires permission above).</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void start();
-        }}
-      >
-        <button type="submit">Start</button>
-        <button type="button" onClick={() => void refreshPermission()}>
-          Refresh status
-        </button>
-      </form>
-      {activity ? <p>{activity}</p> : null}
-    </main>
+    </PermissionGate>
   );
 }
 
