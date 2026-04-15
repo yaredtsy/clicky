@@ -30,7 +30,7 @@ An intelligent walkthrough and guided tour agent for desktop applications built 
 ## Quick Start
 
 ```bash
-npm install
+yarn install
 cargo tauri dev
 ```
 
